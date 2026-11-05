@@ -106,11 +106,12 @@ def search_users(request: Request, q: str = ""):
     if not has_admin_access(user):
         return RedirectResponse("/dashboard", status_code=302)
 
-    sql = f"SELECT id, email, full_name, role FROM users WHERE email ILIKE '%{q}%' OR full_name ILIKE '%{q}%'"
+    sql = f"SELECT id, email, full_name, role FROM users WHERE email ILIKE %s OR full_name ILIKE %s"
+    like_term = f"%{q}%"
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(sql, (like_term, like_term))
             rows = cur.fetchall()
             cols = [d[0] for d in cur.description]
             users = [dict(zip(cols, r)) for r in rows]
