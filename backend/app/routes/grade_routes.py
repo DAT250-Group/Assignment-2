@@ -40,9 +40,9 @@ def grade_detail(request: Request, grade_id: int):
         FROM grades g
         JOIN assignments a ON a.id=g.assignment_id
         JOIN users u ON u.id=g.student_id
-        WHERE g.id=%s
+        WHERE g.id=%s AND g.student_id=%s
         """,
-        (grade_id,),
+        (grade_id, user["id"]),
         fetchone=True,
     )
     return templates.TemplateResponse("grade_detail.html", {"request": request, "user": user, "grade": grade})
