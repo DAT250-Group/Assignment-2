@@ -24,13 +24,17 @@ def login_page(request: Request):
 @router.post("/login", response_class=HTMLResponse)
 def login(request: Request, email: str = Form(...), password: str = Form(...)):
     user = run_query("SELECT * FROM users WHERE email=%s", (email,), fetchone=True)
+    
+    error_msg = "Invalid email or password."
+    
     if not user:
         return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "No account found with that email."}
+            "login.html", {"request": request, "error": error_msg}
         )
+        
     if not verify_password(password, user["password_hash"]):
         return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "Invalid password for this account."}
+            "login.html", {"request": request, "error": error_msg}
         )
 
     token = create_session(user["id"])
@@ -80,22 +84,23 @@ def reset_password_page(request: Request):
 @router.post("/reset-password", response_class=HTMLResponse)
 def reset_password_request(request: Request, email: str = Form(...)):
     user = run_query("SELECT * FROM users WHERE email=%s", (email,), fetchone=True)
-    if not user:
-        return templates.TemplateResponse(
-            "reset_password.html",
-            {"request": request, "mode": "request", "message": "No user found with that email."},
+    
+    if user:
+        token = str(int(time.time()))[-6:]
+        run_query(
+            "INSERT INTO password_reset_tokens (user_id, token) VALUES (%s, %s)",
+            (user["id"], token),
+            commit=True,
         )
-
-    token = str(int(time.time()))[-6:]
-    run_query(
-        "INSERT INTO password_reset_tokens (user_id, token) VALUES (%s, %s)",
-        (user["id"], token),
-        commit=True,
-    )
-    send_reset_email(email, token)
+        send_reset_email(email, token)
+        
     return templates.TemplateResponse(
         "reset_password.html",
-        {"request": request, "mode": "request", "message": f"Reset email sent to {email}."},
+        {
+            "request": request, 
+            "mode": "request", 
+            "message": "If that email is in our system, we have sent a reset link."
+        },
     )
 
 
