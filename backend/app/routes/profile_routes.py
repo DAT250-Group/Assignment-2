@@ -55,6 +55,10 @@ def profile_by_id(request: Request, user_id: int):
     user = get_user_from_session(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
+        
+    if user["id"] != user_id and user.get("role") not in ["admin", "teacher"]:
+        return RedirectResponse("/profile", status_code=302)
+        
     profile = run_query("SELECT * FROM users WHERE id=%s", (user_id,), fetchone=True)
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "profile": profile})
 
@@ -66,7 +70,6 @@ def update_profile(
     phone: str = Form(""),
     address: str = Form(""),
     bio: str = Form(""),
-    role: str = Form("student"),
 ):
     user = get_user_from_session(request)
     if not user:
@@ -74,13 +77,13 @@ def update_profile(
 
     run_query(
         """
-        UPDATE users SET full_name=%s, phone=%s, address=%s, bio=%s, role=%s
+        UPDATE users SET full_name=%s, phone=%s, address=%s, bio=%s
         WHERE id=%s
         """,
-        (full_name, phone, address, bio, role, user["id"]),
+        (full_name, phone, address, bio, user["id"]),
         commit=True,
     )
-    return RedirectResponse(f"/profile/{user['id']}", status_code=302)
+    return RedirectResponse("/profile", status_code=302)
 
 
 @router.post("/profile/avatar")
@@ -96,4 +99,4 @@ def upload_avatar(request: Request, avatar: UploadFile = File(...)):
         f.write(avatar.file.read())
 
     run_query("UPDATE users SET avatar_path=%s WHERE id=%s", (filename, user["id"]), commit=True)
-    return RedirectResponse(f"/profile/{user['id']}", status_code=302)
+    return RedirectResponse("/profile", status_code=302)
