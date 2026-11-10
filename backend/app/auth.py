@@ -37,6 +37,8 @@ def get_user_from_session(request: Request):
     )
     return session
 
+def has_admin_access(user) -> bool:
+    return user["role"] in ["admin", "teacher", "ta"]
 
 def clear_session(token: str):
     run_query("DELETE FROM sessions WHERE session_token = %s", (token,), commit=True)

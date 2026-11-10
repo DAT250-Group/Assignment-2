@@ -23,11 +23,12 @@ def search_courses(request: Request, q: str = ""):
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    sql = f"SELECT * FROM courses WHERE title ILIKE '%{q}%' ORDER BY id"
+    sql = f"SELECT * FROM courses WHERE title ILIKE %s ORDER BY id"
+    like_term = f"%{q}%"
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(sql, (like_term,))
             rows = cur.fetchall()
             cols = [d[0] for d in cur.description]
             courses = [dict(zip(cols, r)) for r in rows]
