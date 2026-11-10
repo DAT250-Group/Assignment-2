@@ -52,8 +52,9 @@ def trigger_error(request: Request):
         x = 1 / 0
         return {"x": x}
     except Exception:
+        print(traceback.format_exc())
         return templates.TemplateResponse(
             "error.html",
-            {"request": request, "details": traceback.format_exc()},
+            {"request": request, "details": "Something went wrong. Please try again later."},
             status_code=500,
         )
