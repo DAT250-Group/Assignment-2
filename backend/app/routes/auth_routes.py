@@ -1,4 +1,4 @@
-import time
+import secrets
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -84,7 +84,7 @@ def reset_password_request(request: Request, email: str = Form(...)):
     user = run_query("SELECT * FROM users WHERE email=%s", (email,), fetchone=True)
     
     if user:
-        token = str(int(time.time()))[-6:]
+        token = secrets.token_urlsafe(32)
         run_query(
             "INSERT INTO password_reset_tokens (user_id, token) VALUES (%s, %s)",
             (user["id"], token),
@@ -110,14 +110,17 @@ def reset_password_token_page(request: Request, token: str):
 @router.post("/reset-password/{token}", response_class=HTMLResponse)
 def reset_password_token(request: Request, token: str, new_password: str = Form(...)):
     token_row = run_query(
-        "SELECT * FROM password_reset_tokens WHERE token=%s ORDER BY created_at DESC LIMIT 1",
+        """
+        SELECT * FROM password_reset_tokens
+        WHERE token=%s AND created_at > NOW() - INTERVAL '30 minutes'
+        """,
         (token,),
         fetchone=True,
     )
     if not token_row:
         return templates.TemplateResponse(
             "reset_password.html",
-            {"request": request, "mode": "set", "token": token, "message": "Invalid token"},
+            {"request": request, "mode": "set", "token": token, "message": "Invalid or expired token"},
         )
 
     run_query(
@@ -125,4 +128,6 @@ def reset_password_token(request: Request, token: str, new_password: str = Form(
         (hash_password(new_password), token_row["user_id"]),
         commit=True,
     )
+    run_query("DELETE FROM password_reset_tokens WHERE user_id=%s", (token_row["user_id"],), commit=True)
+    run_query("DELETE FROM sessions WHERE user_id=%s", (token_row["user_id"],), commit=True)
     return RedirectResponse("/login", status_code=302)

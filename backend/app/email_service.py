@@ -10,7 +10,5 @@ def send_reset_email(to_email: str, token: str):
     msg["From"] = "noreply@dat250.local"
     msg["To"] = to_email
 
-    print(f"Sending password reset token {token} to {to_email}")
-
     with smtplib.SMTP(MAILHOG_HOST, MAILHOG_PORT) as server:
         server.sendmail(msg["From"], [to_email], msg.as_string())
