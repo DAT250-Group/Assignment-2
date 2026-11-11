@@ -1,16 +1,17 @@
 import traceback
 import requests
+import ipaddress
+import socket
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from urllib.parse import urlparse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_user_from_session
-from app.config import APP_ENV
+from app.config import APP_ENV, RESOURCE_ALLOWED_HOSTS
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-ALLOWED_HOSTS = {"example.com", "www.example.com", "uis.no", "www.uis.no"}
-
+ALLOWED_HOSTS = RESOURCE_ALLOWED_HOSTS
 
 def is_allowed_url(url: str) -> bool:
     try:
@@ -20,7 +21,17 @@ def is_allowed_url(url: str) -> bool:
     if parsed.scheme not in ("http", "https"):
         return False
     host = (parsed.hostname or "").lower()
-    return host in ALLOWED_HOSTS
+    if host not in ALLOWED_HOSTS:
+        return False
+    try:
+        addresses = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return True  # cannot resolve: the request will fail with a generic error anyway
+    for address in addresses:
+        ip = ipaddress.ip_address(address[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            return False
+    return True
 
 @router.get("/health")
 def health():
