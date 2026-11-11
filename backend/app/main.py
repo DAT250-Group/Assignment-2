@@ -11,7 +11,7 @@ from app.routes import (
     utility_routes,
 )
 
-app = FastAPI(title="DAT250 SecureApp", debug=True)
+app = FastAPI(title="DAT250 SecureApp", debug=False)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/uploads", StaticFiles(directory="app/uploads"), name="uploads")
