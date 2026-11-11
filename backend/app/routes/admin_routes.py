@@ -48,7 +48,20 @@ def update_role(request: Request, user_id: int, role: str = Form(...)):
     if not has_admin_access(user):
         return RedirectResponse("/dashboard", status_code=302)
 
-    if user["role"] in ["admin", "teacher"] and role in ["admin", "teacher", "ta", "student"]:
+    target = run_query("SELECT role FROM users WHERE id=%s", (user_id,), fetchone=True)
+    is_admin = user["role"] == "admin"
+    is_teacher_managing_non_admin = (
+        user["role"] == "teacher"
+        and target is not None
+        and target["role"] != "admin"
+        and role != "admin"
+    )
+    if (
+        target is not None
+        and user_id != user["id"]
+        and role in ["admin", "teacher", "ta", "student"]
+        and (is_admin or is_teacher_managing_non_admin)
+    ):
         run_query("UPDATE users SET role=%s WHERE id=%s", (role, user_id), commit=True)
 
     return RedirectResponse("/admin/users", status_code=302)
