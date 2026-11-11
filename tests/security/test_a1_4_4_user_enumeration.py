@@ -4,6 +4,8 @@ Before the fix, the login said "No account found" for unknown emails and
 "Invalid password" for known ones, and password reset said "No user found".
 Now both cases give exactly the same answer.
 """
+import uuid
+ 
 from conftest import BASE
  
 GENERIC_LOGIN = "Invalid email or password."
@@ -37,4 +39,14 @@ def test_correct_login_still_works(anon):
     r = login_response(anon, "alice@student.uis.no", "Alice123")
     assert r.status_code == 302
     assert r.headers["location"] == "/dashboard"
+ 
+ 
+def test_register_same_answer_for_existing_email(anon):
+    existing = anon.post(f"{BASE}/register", allow_redirects=False,
+                         data={"email": "alice@student.uis.no", "full_name": "X", "password": "Whatever1"})
+    new = anon.post(f"{BASE}/register", allow_redirects=False,
+                    data={"email": f"user-{uuid.uuid4().hex[:8]}@uis.no", "full_name": "X", "password": "Whatever1"})
+    assert existing.status_code == new.status_code == 302
+    assert existing.headers["location"] == new.headers["location"] == "/login"
+    assert "already exists" not in existing.text
  

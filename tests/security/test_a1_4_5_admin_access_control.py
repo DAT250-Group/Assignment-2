@@ -69,3 +69,23 @@ def test_teacher_can_still_update_grades(as_user):
     r = teacher.get(f"{BASE}/admin/grades")
     assert "Good structure, include more trace evidence." in r.text
  
+ 
+def test_teacher_cannot_make_self_admin(as_user):
+    teacher, admin = as_user("teacher"), as_user("admin")
+    teacher.post(f"{BASE}/admin/users/{USER_IDS['teacher']}/role", data={"role": "admin"})
+    assert role_of(admin, "teacher@dat250.local") == "teacher"
+ 
+ 
+def test_teacher_cannot_change_admin_role(as_user):
+    teacher, admin = as_user("teacher"), as_user("admin")
+    teacher.post(f"{BASE}/admin/users/{USER_IDS['admin']}/role", data={"role": "student"})
+    assert role_of(admin, "admin@dat250.local") == "admin"
+ 
+ 
+def test_teacher_can_still_manage_student_roles(as_user):
+    teacher, admin = as_user("teacher"), as_user("admin")
+    teacher.post(f"{BASE}/admin/users/{USER_IDS['charlie']}/role", data={"role": "ta"})
+    assert role_of(admin, "charlie@student.uis.no") == "ta"
+    teacher.post(f"{BASE}/admin/users/{USER_IDS['charlie']}/role", data={"role": "student"})
+    assert role_of(admin, "charlie@student.uis.no") == "student"
+ 
