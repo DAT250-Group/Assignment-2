@@ -11,16 +11,24 @@ This repository contains a local-only lab web application for DAT250 Information
 
 ## 3. Quick start
 ```bash
-git clone <repo>
-cd dat250-secureapp
+git clone https://github.com/DAT250-Group/Assignment-2.git
+cd Assignment-2
+
+# Create your local environment file (it is not committed to Git)
+cp .env.example .env          # Windows PowerShell: copy .env.example .env
+# Then edit .env and set SESSION_SECRET to a long random value, for example:
+#   python -c "import secrets; print(secrets.token_hex(32))"
+
 docker compose down -v
 docker compose up --build
 ```
 
+> The application refuses to start if `SESSION_SECRET` is missing. This is intentional (see "Security fixes" below).
+
 ## 4. URLs
 - App: [http://localhost:18181](http://localhost:18181)
-- MailHog inbox: [http://localhost:8025](http://localhost:8025)
-- Optional database admin UI: [http://localhost:8081](http://localhost:8081), if enabled
+- MailHog inbox: [http://localhost:8025](http://localhost:8025) (only reachable from the host machine)
+- Optional database admin UI: [http://localhost:8081](http://localhost:8081), if enabled (only reachable from the host machine)
 - API docs (if available in this lab build): [http://localhost:18181/docs](http://localhost:18181/docs)
 
 ## Running the app
@@ -41,6 +49,40 @@ If phpPgAdmin is enabled, use:
 - Database: `dat250`
 - Username: `dat250`
 - Password: `dat250`
+
+## Security fixes (Assignment 2)
+
+This version of DAT250 SecureApp fixes the vulnerabilities found in Assignment 1 plus additional issues:
+
+| ID | Vulnerability | Fix |
+|---|---|---|
+| 4.1 | Stored XSS and session hijacking | Removed `\|safe` from all templates; session cookie is `HttpOnly` and `SameSite=Lax` |
+| 4.2 | Role mass assignment in `/profile/update` | The role is no longer accepted from the profile form |
+| 4.3 | SQL injection in `/admin/search-users` and `/courses/search` | Parameterized queries |
+| 4.4 | User enumeration on login and password reset | Identical generic responses |
+| 4.5 | Missing access control on `/admin/*` | Role check on every admin route; role taken from the session only |
+| E1/E2 | IDOR on grades, messages and profiles | Ownership checks |
+| E3 | Insecure configuration | Debug off, generic error page, no hardcoded secret, internal services bound to `127.0.0.1` |
+| E4 | Unsalted SHA-256 passwords | bcrypt (cost 12) |
+| E5 | SSRF in `/resources/import` | Login required, http/https only, host allowlist, no redirects |
+
+## Running the security tests
+
+The automated regression tests (pytest) run against the running application.
+
+```bash
+# 1. Start the application (see Quick start)
+docker compose up --build
+
+# 2. In another terminal, install the test dependencies
+python -m pip install -r requirements-test.txt
+
+# 3. Run the tests
+python -m pytest
+```
+
+All tests should pass. Each test checks that an attack from Assignment 1 is blocked **and** that legitimate use still works.
+The password hashing tests read the database on `127.0.0.1:5432`; override with `TEST_DATABASE_URL` if needed.
 
 ## 5. Test users
 Use these accounts in the local lab environment:

@@ -6,3 +6,4 @@ backend/app/uploads/*
 !backend/app/uploads/.gitkeep
 push.sh
 .pytest_cache/
+.vscode/
