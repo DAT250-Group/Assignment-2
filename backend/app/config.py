@@ -12,3 +12,10 @@ if not SESSION_SECRET:
 MAILHOG_HOST = os.getenv("MAILHOG_HOST", "mailhog")
 MAILHOG_PORT = int(os.getenv("MAILHOG_PORT", "1025"))
 BASE_URL = os.getenv("BASE_URL", "http://localhost:18181")
+RESOURCE_ALLOWED_HOSTS = {
+    host.strip().lower()
+    for host in os.getenv(
+        "RESOURCE_ALLOWED_HOSTS", "example.com,www.example.com,uis.no,www.uis.no"
+    ).split(",")
+    if host.strip()
+}

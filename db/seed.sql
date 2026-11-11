@@ -55,10 +55,6 @@ INSERT INTO course_comments (course_id, user_id, content) VALUES
 (1, 5, 'Can we get clarification on token handling?'),
 (2, 6, 'DB isolation examples were clear.');
 
-INSERT INTO password_reset_tokens (user_id, token) VALUES
-(4, '123456'),
-(5, '123456');
-
 INSERT INTO app_settings (setting_key, setting_value) VALUES
 ('portal_theme', 'uis-light'),
 ('semester', 'Spring 2026'),
