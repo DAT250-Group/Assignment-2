@@ -50,19 +50,17 @@ def register_page(request: Request):
 
 @router.post("/register", response_class=HTMLResponse)
 def register(request: Request, email: str = Form(...), full_name: str = Form(...), password: str = Form(...)):
+    password_hash = hash_password(password)
     existing = run_query("SELECT id FROM users WHERE email=%s", (email,), fetchone=True)
-    if existing:
-        return templates.TemplateResponse(
-            "register.html", {"request": request, "error": "Email already exists."}
+    if not existing:
+        run_query(
+            """
+            INSERT INTO users (email, full_name, password_hash, role)
+            VALUES (%s, %s, %s, 'student')
+            """,
+            (email, full_name, password_hash),
+            commit=True,
         )
-    run_query(
-        """
-        INSERT INTO users (email, full_name, password_hash, role)
-        VALUES (%s, %s, %s, 'student')
-        """,
-        (email, full_name, hash_password(password)),
-        commit=True,
-    )
     return RedirectResponse("/login", status_code=302)
 
 
