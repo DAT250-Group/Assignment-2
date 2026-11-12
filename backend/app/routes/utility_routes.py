@@ -26,7 +26,7 @@ def is_allowed_url(url: str) -> bool:
     try:
         addresses = socket.getaddrinfo(host, None)
     except socket.gaierror:
-        return True  # cannot resolve: the request will fail with a generic error anyway
+        return False
     for address in addresses:
         ip = ipaddress.ip_address(address[4][0])
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
