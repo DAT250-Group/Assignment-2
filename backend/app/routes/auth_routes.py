@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -78,6 +79,8 @@ def logout(request: Request):
 def reset_password_page(request: Request):
     return templates.TemplateResponse("reset_password.html", {"request": request, "mode": "request", "message": None})
 
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
 
 @router.post("/reset-password", response_class=HTMLResponse)
 def reset_password_request(request: Request, email: str = Form(...)):
@@ -85,9 +88,11 @@ def reset_password_request(request: Request, email: str = Form(...)):
     
     if user:
         token = secrets.token_urlsafe(32)
+        run_query("DELETE FROM password_reset_tokens WHERE user_id=%s", 
+            (user["id"],), commit=True)
         run_query(
             "INSERT INTO password_reset_tokens (user_id, token) VALUES (%s, %s)",
-            (user["id"], token),
+            (user["id"], hash_token(token)),
             commit=True,
         )
         send_reset_email(email, token)
@@ -114,7 +119,7 @@ def reset_password_token(request: Request, token: str, new_password: str = Form(
         SELECT * FROM password_reset_tokens
         WHERE token=%s AND created_at > NOW() - INTERVAL '30 minutes'
         """,
-        (token,),
+        (hash_token(token),),
         fetchone=True,
     )
     if not token_row:
